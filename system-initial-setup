@@ -1,0 +1,81 @@
+#!/usr/bin/env sh
+
+echo -e "\n- Initial system setup\n"
+
+DIR_BIN="$HOME/.local/bin"
+DIR_SETUP="$HOME/Me/System/setup"
+
+setup_essential_dirs() {
+  echo -e "\n--- Directories: essential directories setup\n"
+
+  if [ ! -d "$DIR_BIN" ]; then
+    mkdir -p $DIR_BIN
+  fi
+
+  if [ ! -d "$DIR_SETUP" ]; then
+    mkdir -p $DIR_SETUP
+  fi
+}
+
+setup_nix_essential_tools() {
+  echo -e "\n--- Tooling: essential setup\n"
+  if [[ $(command -v nvim) ]]; then
+    echo -e "\n--- Neovim is already installed\n"
+  else
+    nix-env -iA nixpkgs.neovim
+  fi
+
+  if [[ $(command -v git) ]]; then
+    echo -e "\n--- Git is already installed\n"
+  else
+    nix-env -iA nixpkgs.git
+    nix-env -iA nixpkgs.git-extras
+  fi
+}
+
+setup_nix() {
+  echo -e "\n--- Nix(Lix): setup\n"
+  curl -sSf -L https://install.lix.systems/lix | sh -s -- install
+   . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+  nix-channel --add https://nixos.org/channels/nixpkgs-unstable
+  nix-channel --update
+  nix-env -u &>/dev/null
+  setup_nix_essential_tools
+}
+
+setup_distro() {
+  echo -e "\n--- Distro: essential setup\n"
+
+  if [ ! -d "$XDG_CONFIG_HOME" ]; then
+    export XDG_CONFIG_HOME="$HOME/.config"
+  fi
+  
+  # systemd and curl are available: we can install https://lix.systems/
+  # Solus
+  if [[ $(command -v eopkg) ]]; then
+    sudo eopkg upgrade
+    sudo eopkg install -c system.devel
+    setup_nix
+  fi
+    
+  # ClearLinux
+  if [[ $(command -v swupd) ]]; then
+    sudo swupd update
+    sudo swupd bundle-add c-basic
+    setup_nix
+}
+
+setup_system() {
+  cd $DIR_SETUP
+  git clone https://github.com/maxdevjs/01-system-complete-setup
+}
+
+execute() {
+  setup_essential_dirs
+  setup_distro
+  setup_system
+  $DIR_SETUP/setup/01-system-complete-setup/setup
+}
+
+execute
+
