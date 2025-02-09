@@ -34,12 +34,14 @@ setup_nix_essential_tools() {
 }
 
 setup_nix() {
-  echo -e "\n--- Nix(Lix): setup\n"
-  curl -sSf -L https://install.lix.systems/lix | sh -s -- install
-   . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
-  nix-channel --add https://nixos.org/channels/nixpkgs-unstable
-  nix-channel --update
-  nix-env -u &>/dev/null
+  if [[ ! $(command -v eopkg) ]]; then
+    echo -e "\n--- Nix(Lix): setup\n"
+    curl -sSf -L https://install.lix.systems/lix | sh -s -- install
+     . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+    nix-channel --add https://nixos.org/channels/nixpkgs-unstable
+    nix-channel --update
+    nix-env -u &>/dev/null
+ fi 
   setup_nix_essential_tools
 }
 
@@ -51,30 +53,28 @@ setup_distro() {
   fi
   
   # systemd and curl are available: we can install https://lix.systems/
-  # Solus
-  if [[ $(command -v eopkg) ]]; then
+  
+  if [[ $(command -v eopkg) ]]; then # Solus
     sudo eopkg upgrade
-    sudo eopkg install -c system.devel
+    # sudo eopkg install -c system.devel
+    setup_nix
+  elif [[ $(command -v swupd) ]]; then # ClearLinux
+    sudo swupd update
+    #sudo swupd bundle-add c-basic
     setup_nix
   fi
-    
-  # ClearLinux
-  if [[ $(command -v swupd) ]]; then
-    sudo swupd update
-    sudo swupd bundle-add c-basic
-    setup_nix
 }
 
 setup_system() {
   cd $DIR_SETUP
   git clone https://github.com/maxdevjs/01-system-complete-setup
+  $DIR_SETUP/01-system-complete-setup/setup
 }
 
 execute() {
   setup_essential_dirs
   setup_distro
   setup_system
-  $DIR_SETUP/setup/01-system-complete-setup/setup
 }
 
 execute
